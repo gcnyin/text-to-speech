@@ -2,8 +2,9 @@ import logging
 from typing import List
 
 import edge_tts
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -12,6 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Text to Speech")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
@@ -44,12 +46,21 @@ async def get_voices() -> List[Voice]:
     return voice_list
 
 
-@app.post("/synthesize")
-async def synthesize_speech(text: str, voice: str):
+@app.get("/synthesize")
+async def synthesize_speech(
+    text: str = Query(
+        ...,  # 表示必需参数
+        description="要转换的文本",
+        min_length=1,
+        max_length=1000,
+    ),
+    voice: str = Query(
+        ...,
+        description="语音模型名称",
+        min_length=1,
+    ),
+):
     """生成语音"""
-    if not text:
-        return {"error": "Text is required"}
-
     try:
         logger.info(f"开始生成语音. 文本长度: {len(text)}, 语音模型: {voice}")
 
